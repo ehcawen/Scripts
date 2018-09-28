@@ -28,10 +28,9 @@ class Segment
 public class TrailEffect : MonoBehaviour
 {
     
-    private List<EdgePoint> sections = new List<EdgePoint>();
-    private List<EdgePoint> track = new List<EdgePoint>();
-    private List<Vector3> interpolation = new List<Vector3>();
-    
+    private List<EdgePoint> sections = new List<EdgePoint>();  
+    private List<Segment> segments = new List<Segment>();
+
     private Mesh mesh;
     private int amountOfPoints = 2;
     private int sampleRate = 1;
@@ -69,7 +68,7 @@ public class TrailEffect : MonoBehaviour
         {
             
             EdgePoint p = new EdgePoint(position, t);
-            p.upDir = player.transform.TransformDirection(Vector3.up);
+            p.upDir = position + player.transform.TransformDirection(Vector3.up);
             
             sections.Insert(0, p);
         }
@@ -96,33 +95,57 @@ public class TrailEffect : MonoBehaviour
 
         // need at least 2 point to draw our triangle
         if (sections.Count < 2) return;
-        track.Clear();
+        
 
  
         // use centripetal Catmull-Rom spline here
+
+        // for each section, calculate angles on both sides (top and bottom)
         for (int i =0; i<sections.Count; i+=sampleRate)
         {
+            // create a new segment
+            Segment seg = new Segment();
+            seg.track = new List<Vector3>();
+            seg.top = new List<Vector3>();
+            segments.Add(seg);
+            Vector3 lastTrackPoint = new Vector3();
+            Vector3 lastTopPoint = new Vector3();
             
             if (i>sampleRate&&i<sections.Count-sampleRate)
             {
+                // -------bottom-------- // 
                 // calculate the dot product of BA and BC
-                Vector3 BA = Vector3.Normalize(track[track.Count-1].point - sections[i].point);
+                Vector3 BA = Vector3.Normalize(lastTrackPoint - sections[i].point);
                 Vector3 BC = Vector3.Normalize(sections[i+sampleRate].point - sections[i].point);
 
                 if (Vector3.Dot(BA, BC) > angleCosine)
                 { 
-                    generate(i);
+                    generate(i, ref seg.track);
                 }
                 else
                 {
-                    track.Add(sections[i]);
+                    seg.track.Add(sections[i].point);
                 }
 
+                // ------top------ //
+                Vector3 ba = Vector3.Normalize(lastTopPoint - sections[i].upDir);
+                Vector3 bc = Vector3.Normalize(sections[i + sampleRate].upDir - sections[i].upDir);
+                if (Vector3.Dot(ba, bc) > angleCosine)
+                {
+                    generate(i, ref seg.top);
+                }
+                else
+                {
+                    seg.top.Add(sections[i].point);
+                }
             }
             else
             {
-                track.Add(sections[i]);
+                seg.track.Add(sections[i].point);
+                seg.top.Add(sections[i].upDir);
             }
+            lastTopPoint = seg.top[seg.top.Count - 1];
+            lastTrackPoint = seg.track[seg.track.Count - 1];
         }  
 
         // set mesh vertices
@@ -163,16 +186,10 @@ public class TrailEffect : MonoBehaviour
 
     }
 
-     void generate(int i)
+     void generate(int i, ref List<Vector3> segPoints)
     {
         List<Vector3> points = new List<Vector3>();
-        if (i < 2*sampleRate)
-        {
-            points.Add(2*sections[i - sampleRate].point-sections[i].point);
-        }else
-        {
-            points.Add(sections[i - 2*sampleRate].point);
-        }
+        
         points.Add(sections[i - sampleRate].point);
         points.Add(sections[i].point);
         points.Add(sections[i + sampleRate].point);
@@ -190,14 +207,11 @@ public class TrailEffect : MonoBehaviour
             for (int j = 0; j < amountOfPoints; j++)
             {
                 Vector3 newPoint = PointOnCurve(points[k], points[k + 1], points[k + 2], points[k + 3], (1f / amountOfPoints) * j);
-                EdgePoint ep = new EdgePoint(newPoint, 0);
-                ep.upDir = sections[i].upDir;
-                track.Add(ep);
+                segPoints.Add(newPoint);
             }
 
-            EdgePoint lastPoint = new EdgePoint(points[points.Count-2],0);
-            lastPoint.upDir = sections[i + sampleRate].upDir;
-            //track.Add(lastPoint);
+            segPoints.Add(points[points.Count - 2]);
+            
 
         }
 
