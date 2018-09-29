@@ -33,12 +33,12 @@ public class TrailEffect : MonoBehaviour
 
     private Mesh mesh;
     private int amountOfPoints = 2;
-    private int sampleRate = 1;
+    private int sampleRate = 8;
     private float angleCosine = -0.99f;
 
     public GameObject player;
     public float lifeTime;
-    public float width;
+    public float width = 5.0f;
     public float alpha = 0.5f;
     private void Awake()
     {
@@ -68,7 +68,7 @@ public class TrailEffect : MonoBehaviour
         {
             
             EdgePoint p = new EdgePoint(position, t);
-            p.upDir = position + player.transform.TransformDirection(Vector3.up);
+            p.upDir = position + width*player.transform.TransformDirection(Vector3.up);
             
             sections.Insert(0, p);
         }
@@ -78,6 +78,7 @@ public class TrailEffect : MonoBehaviour
     {
 
         mesh.Clear();
+        segments.Clear();
         
         // delete expired EdgePoint
 
@@ -144,10 +145,58 @@ public class TrailEffect : MonoBehaviour
                 seg.track.Add(sections[i].point);
                 seg.top.Add(sections[i].upDir);
             }
-            lastTopPoint = seg.top[seg.top.Count - 1];
-            lastTrackPoint = seg.track[seg.track.Count - 1];
-        }  
+            lastTopPoint = seg.top[0];
+            lastTrackPoint = seg.track[0];
+        }
 
+        // set mesh vertices and triangles
+        // uv later
+        List<Vector3> vertices = new List<Vector3>();
+        List<int> triangles = new List<int>();
+
+        for (int i = 0; i < segments.Count; i++)
+        {
+            int tailIndex = vertices.Count - 1;
+            // for each segment
+            Segment curSeg = segments[i];
+            int trackCount = curSeg.track.Count;
+            int topCount = curSeg.top.Count;
+            int [] trackIndex = new int[trackCount];
+            int[] topIndex = new int[topCount];
+
+            // ------set vertices------
+            for (int j = 0; j <trackCount; j++)
+            {
+                vertices.Add(curSeg.track[j]);
+                tailIndex++;
+                trackIndex[j] = tailIndex;
+            }
+            for(int j = 0; j< topCount; j++)
+            {
+                vertices.Add(curSeg.top[j]);
+                tailIndex++;
+                topIndex[j] = tailIndex;
+            }
+
+            // ------set triangles------
+            int triangleNum = (trackCount-1) + (topCount-1);
+            for (int j = 0; j < topCount-1; j++ )
+            {
+                triangles.Add(trackIndex[0]);
+                triangles.Add(topIndex[j]);
+                triangles.Add(topIndex[j + 1]);
+
+            }
+            for (int j = 0; j < trackCount-1; j++)
+            {
+                triangles.Add(topIndex[topCount - 1]);
+                triangles.Add(trackIndex[j+1]);
+                triangles.Add(trackIndex[j]);
+            }
+
+        }
+
+        /*
         // set mesh vertices
         Vector3 [] vertices = new Vector3[track.Count * 2];
 
@@ -180,9 +229,10 @@ public class TrailEffect : MonoBehaviour
             triangles[i * 6 + 5] = i * 2 + 3;
 
         }
+        */
 
-        mesh.vertices = vertices;
-        mesh.triangles = triangles;
+        mesh.vertices = vertices.ToArray();
+        mesh.triangles = triangles.ToArray();
 
     }
 
