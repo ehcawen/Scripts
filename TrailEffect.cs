@@ -32,14 +32,15 @@ public class TrailEffect : MonoBehaviour
     private List<Segment> segments = new List<Segment>();
 
     private Mesh mesh;
-    private int amountOfPoints = 2;
+    private int amountOfPoints = 10;
     private int sampleRate = 8;
-    private float angleCosine = -0.99f;
 
+    public float angleCosine = -0.98f;
     public GameObject player;
     public float lifeTime;
     public float width = 5.0f;
     public float alpha = 0.5f;
+    public Vector3 init_v = new Vector3(-8.0f, 0.0f, 0.0f);
     private void Awake()
     {
         mesh = GetComponent<MeshFilter>().mesh;
@@ -49,7 +50,8 @@ public class TrailEffect : MonoBehaviour
 
     void Start()
     {
-
+        Rigidbody rb = player.GetComponent<Rigidbody>();
+        rb.velocity = init_v;
     }
 
     private void FixedUpdate()
@@ -94,8 +96,9 @@ public class TrailEffect : MonoBehaviour
             
         }
 
-        // need at least 2 point to draw our triangle
-        if (sections.Count < 2) return;
+        // need at least 2 point(to form the Segment) to draw our triangle
+        // so segments.Count > 1
+        if (sections.Count < sampleRate + 1) return;
         
 
  
@@ -112,7 +115,7 @@ public class TrailEffect : MonoBehaviour
             Vector3 lastTrackPoint = new Vector3();
             Vector3 lastTopPoint = new Vector3();
             
-            if (i>sampleRate&&i<sections.Count-sampleRate)
+            if (i>0&&i<sections.Count-sampleRate)
             {
                 // -------bottom-------- // 
                 // calculate the dot product of BA and BC
@@ -133,7 +136,7 @@ public class TrailEffect : MonoBehaviour
                 Vector3 bc = Vector3.Normalize(sections[i + sampleRate].upDir - sections[i].upDir);
                 if (Vector3.Dot(ba, bc) > angleCosine)
                 {
-                    generate(i, ref seg.top);
+                    generateTop(i, ref seg.top);
                 }
                 else
                 {
@@ -154,15 +157,16 @@ public class TrailEffect : MonoBehaviour
         List<Vector3> vertices = new List<Vector3>();
         List<int> triangles = new List<int>();
 
-        for (int i = 0; i < segments.Count; i++)
+        for (int i = 0; i < segments.Count-1; i++)
         {
             int tailIndex = vertices.Count - 1;
             // for each segment
             Segment curSeg = segments[i];
+            Segment nextSeg = segments[i + 1];
             int trackCount = curSeg.track.Count;
             int topCount = curSeg.top.Count;
-            int [] trackIndex = new int[trackCount];
-            int[] topIndex = new int[topCount];
+            int [] trackIndex = new int[trackCount+1];
+            int[] topIndex = new int[topCount+1];
 
             // ------set vertices------
             for (int j = 0; j <trackCount; j++)
@@ -171,65 +175,34 @@ public class TrailEffect : MonoBehaviour
                 tailIndex++;
                 trackIndex[j] = tailIndex;
             }
+            vertices.Add(nextSeg.track[0]);
+            tailIndex++;
+            trackIndex[trackCount] = tailIndex;
             for(int j = 0; j< topCount; j++)
             {
                 vertices.Add(curSeg.top[j]);
                 tailIndex++;
                 topIndex[j] = tailIndex;
             }
-
+            vertices.Add(nextSeg.top[0]);
+            tailIndex++;
+            topIndex[topCount] = tailIndex;
             // ------set triangles------
-            int triangleNum = (trackCount-1) + (topCount-1);
-            for (int j = 0; j < topCount-1; j++ )
+            for (int j = 0; j < topCount; j++ )
             {
                 triangles.Add(trackIndex[0]);
                 triangles.Add(topIndex[j]);
                 triangles.Add(topIndex[j + 1]);
 
             }
-            for (int j = 0; j < trackCount-1; j++)
+            for (int j = 0; j < trackCount; j++)
             {
-                triangles.Add(topIndex[topCount - 1]);
+                triangles.Add(topIndex[topCount]);
                 triangles.Add(trackIndex[j+1]);
                 triangles.Add(trackIndex[j]);
             }
 
         }
-
-        /*
-        // set mesh vertices
-        Vector3 [] vertices = new Vector3[track.Count * 2];
-
-
-        for (int i = 0; i < track.Count; i++)
-        {
-            EdgePoint curPoint = track[i];
-            Vector3 upDir = curPoint.upDir;
-
-            // create 2 vertices
-            vertices[i * 2] = curPoint.point;
-            vertices[i * 2 + 1] = curPoint.point + upDir * width;
-        }
-
-
-        // set mesh triangles
-        int triangleIndex=0;
-        triangleIndex = (track.Count - 1) * 2 * 3;
-        int[] triangles = new int[triangleIndex];
-        int triangleLoop = track.Count - 1;
-        for (int i = 0; i < triangleLoop; i++)
-        {
-            triangles[i * 6 + 0] = i * 2;
-            triangles[i * 6 + 1] = i * 2 + 1;
-            triangles[i * 6 + 2] = i * 2 + 2;
-
-
-            triangles[i * 6 + 3] = i * 2 + 2;
-            triangles[i * 6 + 4] = i * 2 + 1;
-            triangles[i * 6 + 5] = i * 2 + 3;
-
-        }
-        */
 
         mesh.vertices = vertices.ToArray();
         mesh.triangles = triangles.ToArray();
@@ -262,6 +235,37 @@ public class TrailEffect : MonoBehaviour
 
             segPoints.Add(points[points.Count - 2]);
             
+
+        }
+
+    }
+
+    void generateTop(int i, ref List<Vector3> segPoints)
+    {
+        List<Vector3> points = new List<Vector3>();
+
+        points.Add(sections[i - sampleRate].upDir);
+        points.Add(sections[i].upDir);
+        points.Add(sections[i + sampleRate].upDir);
+        if (i + 2 * sampleRate < sections.Count)
+        {
+            points.Add(sections[i + 2 * sampleRate].upDir);
+        }
+        else
+        {
+            points.Add(2 * sections[i + sampleRate].upDir - sections[i].upDir);
+        }
+
+        for (int k = 0; k < points.Count - 3; k++)
+        {
+            for (int j = 0; j < amountOfPoints; j++)
+            {
+                Vector3 newPoint = PointOnCurve(points[k], points[k + 1], points[k + 2], points[k + 3], (1f / amountOfPoints) * j);
+                segPoints.Add(newPoint);
+            }
+
+            segPoints.Add(points[points.Count - 2]);
+
 
         }
 
