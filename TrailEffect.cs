@@ -121,19 +121,11 @@ public class TrailEffect : MonoBehaviour
                 // calculate the dot product of BA and BC
                 Vector3 BA = Vector3.Normalize(lastTrackPoint - sections[i].point);
                 Vector3 BC = Vector3.Normalize(sections[i+sampleRate].point - sections[i].point);
-                /*
-                if (Vector3.Dot(BA, BC) > angleCosine)
-                { 
-                    generate(i, ref seg.track);
-                }
-                else
-                {
-                    seg.track.Add(sections[i].point);
-                }*/ 
 
                 // ------top------ //
                 Vector3 ba = Vector3.Normalize(lastTopPoint - sections[i].upDir);
                 Vector3 bc = Vector3.Normalize(sections[i + sampleRate].upDir - sections[i].upDir);
+
                 if (Vector3.Dot(BA, BC) > angleCosine || Vector3.Dot(ba, bc) > angleCosine)
                 {
                     generate(i, ref seg.track);
@@ -159,7 +151,9 @@ public class TrailEffect : MonoBehaviour
         
         List<Vector3> vertices = new List<Vector3>();
         List<int> triangles = new List<int>();
-
+        List<Vector2> uv = new List<Vector2>();
+        int uCount = 0;
+        float u = 0.0f;
         for (int i = 0; i < segments.Count-1; i++)
         {
             int tailIndex = vertices.Count - 1;
@@ -170,24 +164,33 @@ public class TrailEffect : MonoBehaviour
             int topCount = curSeg.top.Count;
             int [] trackIndex = new int[trackCount+1];
             int[] topIndex = new int[topCount+1];
+            int tmpUCount = uCount;
 
             Debug.Assert(trackCount==topCount);
             // ------set vertices------
             for (int j = 0; j <trackCount; j++)
             {
+                uv.Add(new Vector2(uCount, 0));
+                uCount++;
                 vertices.Add(curSeg.track[j]);
                 tailIndex++;
                 trackIndex[j] = tailIndex;
             }
+            uv.Add(new Vector2(uCount, 0));
+            uCount++;
             vertices.Add(nextSeg.track[0]);
             tailIndex++;
             trackIndex[trackCount] = tailIndex;
             for(int j = 0; j< topCount; j++)
             {
+                uv.Add(new Vector2(tmpUCount, 1));
+                tmpUCount++;
                 vertices.Add(curSeg.top[j]);
                 tailIndex++;
                 topIndex[j] = tailIndex;
             }
+            uv.Add(new Vector2(tmpUCount, 1));
+            tmpUCount++;
             vertices.Add(nextSeg.top[0]);
             tailIndex++;
             topIndex[topCount] = tailIndex;
@@ -202,11 +205,17 @@ public class TrailEffect : MonoBehaviour
                 triangles.Add(trackIndex[j]);
 
             }
-            for (int j = 0; j < trackCount; j++)
-            {
-                
-            }
+            
 
+        }
+
+        uCount = uv.Count;
+        for (int i = 0; i < uCount; i++)
+        {
+            Vector2 sortedUV = uv[i];
+            float x = uv[i].x / uCount;
+            float y = uv[i].y;
+            uv[i] = new Vector2(x, y);
         }
 
         mesh.vertices = vertices.ToArray();
