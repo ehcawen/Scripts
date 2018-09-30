@@ -121,7 +121,7 @@ public class TrailEffect : MonoBehaviour
                 // calculate the dot product of BA and BC
                 Vector3 BA = Vector3.Normalize(lastTrackPoint - sections[i].point);
                 Vector3 BC = Vector3.Normalize(sections[i+sampleRate].point - sections[i].point);
-
+                /*
                 if (Vector3.Dot(BA, BC) > angleCosine)
                 { 
                     generate(i, ref seg.track);
@@ -129,18 +129,20 @@ public class TrailEffect : MonoBehaviour
                 else
                 {
                     seg.track.Add(sections[i].point);
-                }
+                }*/ 
 
                 // ------top------ //
                 Vector3 ba = Vector3.Normalize(lastTopPoint - sections[i].upDir);
                 Vector3 bc = Vector3.Normalize(sections[i + sampleRate].upDir - sections[i].upDir);
-                if (Vector3.Dot(ba, bc) > angleCosine)
+                if (Vector3.Dot(BA, BC) > angleCosine || Vector3.Dot(ba, bc) > angleCosine)
                 {
+                    generate(i, ref seg.track);
                     generateTop(i, ref seg.top);
                 }
                 else
                 {
                     seg.top.Add(sections[i].point);
+                    seg.top.Add(sections[i].upDir);
                 }
             }
             else
@@ -154,6 +156,7 @@ public class TrailEffect : MonoBehaviour
 
         // set mesh vertices and triangles
         // uv later
+        
         List<Vector3> vertices = new List<Vector3>();
         List<int> triangles = new List<int>();
 
@@ -168,6 +171,7 @@ public class TrailEffect : MonoBehaviour
             int [] trackIndex = new int[trackCount+1];
             int[] topIndex = new int[topCount+1];
 
+            Debug.Assert(trackCount==topCount);
             // ------set vertices------
             for (int j = 0; j <trackCount; j++)
             {
@@ -190,16 +194,17 @@ public class TrailEffect : MonoBehaviour
             // ------set triangles------
             for (int j = 0; j < topCount; j++ )
             {
-                triangles.Add(trackIndex[0]);
+                triangles.Add(trackIndex[j]);
                 triangles.Add(topIndex[j]);
                 triangles.Add(topIndex[j + 1]);
+                triangles.Add(topIndex[j+1]);
+                triangles.Add(trackIndex[j+1]);
+                triangles.Add(trackIndex[j]);
 
             }
             for (int j = 0; j < trackCount; j++)
             {
-                triangles.Add(topIndex[topCount]);
-                triangles.Add(trackIndex[j+1]);
-                triangles.Add(trackIndex[j]);
+                
             }
 
         }
