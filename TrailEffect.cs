@@ -161,15 +161,27 @@ public class TrailEffect : MonoBehaviour
            
         }
 
-        // set mesh vertices and triangles
-        // uv later
-        
+        // set mesh vertices, triangles an uv
+        Debug.Assert(segments.Count >= 2);
+
         List<Vector3> vertices = new List<Vector3>();
         List<int> triangles = new List<int>();
         List<Vector2> uv = new List<Vector2>();
         int uCount = 0;
         float u = 0.0f;
-        for (int i = 0; i < segments.Count-1; i++)
+
+        // -------------------------------
+        // save the first EdgePoint
+        int headTrackIndex = 0;
+        int headTopIndex = 1;
+        uv.Add(new Vector2(0, 0));
+        uv.Add(new Vector2(0, 1));
+        uCount++;
+        vertices.Add(segments[0].track[0]);
+        vertices.Add(segments[0].top[0]);
+        // -------------------------------
+
+        for (int i = 1; i < segments.Count-1; i++)
         {
             int tailIndex = vertices.Count - 1;
             // for each segment
@@ -181,9 +193,12 @@ public class TrailEffect : MonoBehaviour
             int[] topIndex = new int[topCount+1];
             int tmpUCount = uCount;
 
+            trackIndex[0] = headTrackIndex;
+            topIndex[0] = headTopIndex;
+
             Debug.Assert(trackCount==topCount);
             // ------set vertices------
-            for (int j = 0; j <trackCount; j++)
+            for (int j = 1; j <trackCount; j++)
             {
                 uv.Add(new Vector2(uCount, 0));
                 uCount++;
@@ -196,7 +211,8 @@ public class TrailEffect : MonoBehaviour
             vertices.Add(nextSeg.track[0]);
             tailIndex++;
             trackIndex[trackCount] = tailIndex;
-            for(int j = 0; j< topCount; j++)
+            headTrackIndex = tailIndex;
+            for(int j = 1; j< topCount; j++)
             {
                 uv.Add(new Vector2(tmpUCount, 1));
                 tmpUCount++;
@@ -209,6 +225,7 @@ public class TrailEffect : MonoBehaviour
             vertices.Add(nextSeg.top[0]);
             tailIndex++;
             topIndex[topCount] = tailIndex;
+            headTopIndex = tailIndex;
             // ------set triangles------
             for (int j = 0; j < topCount; j++ )
             {
