@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 
 [RequireComponent(typeof(MeshRenderer), typeof(MeshFilter))]
 
@@ -51,7 +52,7 @@ public class TrailEffect : MonoBehaviour
     void Start()
     {
         Rigidbody rb = player.GetComponent<Rigidbody>();
-        rb.velocity = init_v;
+        // rb.velocity = init_v;
     }
 
     private void FixedUpdate()
@@ -70,7 +71,7 @@ public class TrailEffect : MonoBehaviour
         {
             
             EdgePoint p = new EdgePoint(position, t);
-            p.upDir = position + width*player.transform.TransformDirection(Vector3.up);
+            p.upDir = position + width* player.transform.TransformDirection(Vector3.up);
             
             sections.Insert(0, p);
         }
@@ -114,8 +115,14 @@ public class TrailEffect : MonoBehaviour
             segments.Add(seg);
             Vector3 lastTrackPoint = new Vector3();
             Vector3 lastTopPoint = new Vector3();
-            
-            if (i>0&&i<sections.Count-sampleRate)
+
+            if (i==0)
+            {
+                generate(i, ref seg.track);
+                generateTop(i, ref seg.top);
+            }
+
+            else if (i>0&&i<sections.Count-sampleRate)
             {
                 // -------bottom-------- // 
                 // calculate the dot product of BA and BC
@@ -133,7 +140,7 @@ public class TrailEffect : MonoBehaviour
                 }
                 else
                 {
-                    seg.top.Add(sections[i].point);
+                    seg.track.Add(sections[i].point);
                     seg.top.Add(sections[i].upDir);
                 }
             }
@@ -143,7 +150,15 @@ public class TrailEffect : MonoBehaviour
                 seg.top.Add(sections[i].upDir);
             }
             lastTopPoint = seg.top[0];
-            lastTrackPoint = seg.track[0];
+            try
+            {
+                lastTrackPoint = seg.track[0];
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Generic Exception Handler: {0}", e.ToString());
+            }
+           
         }
 
         // set mesh vertices and triangles
@@ -220,14 +235,16 @@ public class TrailEffect : MonoBehaviour
 
         mesh.vertices = vertices.ToArray();
         mesh.triangles = triangles.ToArray();
-
+        mesh.uv = uv.ToArray();
     }
 
      void generate(int i, ref List<Vector3> segPoints)
     {
         List<Vector3> points = new List<Vector3>();
-        
-        points.Add(sections[i - sampleRate].point);
+        Vector3 p0 = new Vector3();
+        if (i == 0) { p0 = 2*sections[i].point - sections[i + sampleRate].point; }
+        else{ p0 = sections[i - sampleRate].point; }
+        points.Add(p0);
         points.Add(sections[i].point);
         points.Add(sections[i + sampleRate].point);
         if (i+2*sampleRate<sections.Count)
@@ -257,8 +274,10 @@ public class TrailEffect : MonoBehaviour
     void generateTop(int i, ref List<Vector3> segPoints)
     {
         List<Vector3> points = new List<Vector3>();
-
-        points.Add(sections[i - sampleRate].upDir);
+        Vector3 p0 = new Vector3();
+        if (i == 0) { p0 = 2*sections[i].upDir - sections[i + sampleRate].upDir; }
+        else { p0 = sections[i - sampleRate].upDir; }
+        points.Add(p0);
         points.Add(sections[i].upDir);
         points.Add(sections[i + sampleRate].upDir);
         if (i + 2 * sampleRate < sections.Count)
