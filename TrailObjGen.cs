@@ -12,8 +12,8 @@ public class TrailObjGen : MonoBehaviour {
         trailNum = 0;
 	}
 	
-	// Update is called once per frame
-	void Update () {
+	
+	void FixedUpdate () {
         if (Input.GetMouseButtonDown(0) && Time.timeScale != 0)
         {
             trailNum++;
@@ -22,6 +22,7 @@ public class TrailObjGen : MonoBehaviour {
             GameObject newTrail = Instantiate(trail);
             TrailEffect trailEffect =  newTrail.GetComponent<TrailEffect>();
             trailEffect.player = newBullet;
+
 
             Rigidbody rb = newBullet.GetComponent<Rigidbody>();
             rb.velocity = new Vector3(-8.0f, 8.0f, 0);

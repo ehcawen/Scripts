@@ -41,12 +41,24 @@ public class TrailEffect : MonoBehaviour
     public float lifeTime;
     public float width = 5.0f;
     public float alpha = 0.5f;
+    public float blurDist = 20.0f; // don't know how to determine yet
+    public int blurStage = 3;
     public Vector3 init_v = new Vector3(8.0f, 0.0f, 0.0f);
     public Color startColor = Color.white;
     public Color endColor = Color.blue;
 
+    Camera m_camera;
+    const int initPointNum = 10;
+    const int initSampleRate = 8;
+
+    public void setAmountOfPoints(int n)
+    {
+        if (n > 0) amountOfPoints = n;
+    }
+
     private void Awake()
     {
+        m_camera = Camera.main;
         mesh = GetComponent<MeshFilter>().mesh;
     }
 
@@ -69,6 +81,20 @@ public class TrailEffect : MonoBehaviour
         
         // assign the current position
         Vector3 position = player.transform.position;
+
+        float dist = Vector3.Distance(position, m_camera.gameObject.transform.position);
+
+        for (int i = blurStage; i > 0; i--)
+        {
+            amountOfPoints = initPointNum;
+            sampleRate = initSampleRate;
+            if (dist > i * blurDist)
+            {
+                amountOfPoints = initPointNum - (i-1)*initPointNum/blurStage;
+                sampleRate = i * initSampleRate;
+                break;
+            }
+        }
 
         if (sections.Count == 0 || (position - sections[0].point).sqrMagnitude > 0)
         {
