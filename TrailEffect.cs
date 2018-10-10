@@ -42,6 +42,9 @@ public class TrailEffect : MonoBehaviour
     public float width = 5.0f;
     public float alpha = 0.5f;
     public Vector3 init_v = new Vector3(8.0f, 0.0f, 0.0f);
+    public Color startColor = Color.white;
+    public Color endColor = Color.blue;
+
     private void Awake()
     {
         mesh = GetComponent<MeshFilter>().mesh;
@@ -52,7 +55,7 @@ public class TrailEffect : MonoBehaviour
     void Start()
     {
         Rigidbody rb = player.GetComponent<Rigidbody>();
-        rb.velocity = init_v;
+        // rb.velocity = init_v;
     }
 
     private void FixedUpdate()
@@ -161,13 +164,14 @@ public class TrailEffect : MonoBehaviour
            
         }
 
-        // set mesh vertices, triangles an uv
+        // set mesh vertices, uv, color and triangles
         Debug.Assert(segments.Count >= 2);
 
         List<Vector3> vertices = new List<Vector3>();
         List<int> triangles        = new List<int>();
         List<Vector2> uv         = new List<Vector2>();
-    
+        List<Color> colors       = new List<Color>();
+
         float accTrackLength = 0.0f;
         float accTopLength    = 0.0f;
 
@@ -284,14 +288,15 @@ public class TrailEffect : MonoBehaviour
             {
                 x = x / accTopLength; 
             }
-
-            
+            Color interpolatedColor = Color.Lerp(startColor, endColor, x);
+            colors.Add(interpolatedColor);
             uv[i] = new Vector2(x, y);
         }
 
         mesh.vertices = vertices.ToArray();
         mesh.triangles = triangles.ToArray();
         mesh.uv = uv.ToArray();
+        mesh.colors = colors.ToArray();
     }
 
      void generate(int i, ref List<Vector3> segPoints)
