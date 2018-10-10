@@ -25,7 +25,7 @@ public class TrailObjGen : MonoBehaviour {
 
 
             Rigidbody rb = newBullet.GetComponent<Rigidbody>();
-            rb.velocity = new Vector3(-8.0f, 8.0f, 0);
+            rb.velocity = new Vector3(8.0f, -8.0f, 8.0f);
         }
 	}
 
