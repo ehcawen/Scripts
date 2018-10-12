@@ -40,6 +40,7 @@ public class CameraController : MonoBehaviour
         this.trans_y = 0;
         this.trans_x = 0;
         offset = this.transform.position - target.position;
+        distance = offset.magnitude;
     }
 
 

@@ -13,15 +13,20 @@ public class PlayerController : MonoBehaviour {
 
     private Camera mainCamera;
 
+    float time;
+
     private void Start()
     {
         rb = GetComponent<Rigidbody>();
         mainCamera = Camera.main;
+        
     }
 
     private void FixedUpdate()
     {
+
         
+
         float moveHorizontal = Input.GetAxis("Horizontal");
         float moveVertical = Input.GetAxis("Vertical");
         
@@ -39,6 +44,9 @@ public class PlayerController : MonoBehaviour {
         }
 
         rb.AddForce(movement * speed);
+
+        
+
     }
 
     private void launchPlayer()

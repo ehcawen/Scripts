@@ -5,7 +5,6 @@ using System;
 
 [RequireComponent(typeof(MeshRenderer), typeof(MeshFilter))]
 
-
 // a class to store points on the track
 class EdgePoint
 {
@@ -62,18 +61,23 @@ public class TrailEffect : MonoBehaviour
         mesh = GetComponent<MeshFilter>().mesh;
     }
 
+    
+
     // Use this for initialization
 
     void Start()
     {
         Rigidbody rb = player.GetComponent<Rigidbody>();
-        // rb.velocity = init_v;
+        
     }
 
     private void FixedUpdate()
     {
-        MakeMeshData(Time.time);
-        UpdateMeshData(Time.time);
+        
+            MakeMeshData(Time.time);
+            UpdateMeshData(Time.time);
+        
+        
     }
 
     void MakeMeshData(float t)
@@ -82,20 +86,22 @@ public class TrailEffect : MonoBehaviour
         // assign the current position
         Vector3 position = player.transform.position;
 
+        // 根据距离改变取样数和插值数
         float dist = Vector3.Distance(position, m_camera.gameObject.transform.position);
-
+        
         for (int i = blurStage; i > 0; i--)
         {
             amountOfPoints = initPointNum;
             sampleRate = initSampleRate;
             if (dist > i * blurDist)
             {
-                amountOfPoints = initPointNum - (i-1)*initPointNum/blurStage;
+                amountOfPoints = initPointNum + 1 - (i)*initPointNum/blurStage;
                 sampleRate = i * initSampleRate;
                 break;
             }
         }
-
+        
+        
         if (sections.Count == 0 || (position - sections[0].point).sqrMagnitude > 0)
         {
             
@@ -111,9 +117,24 @@ public class TrailEffect : MonoBehaviour
 
         mesh.Clear();
         segments.Clear();
-        
-        // delete expired EdgePoint
 
+        Vector3 position = player.transform.position;
+
+        float dist = Vector3.Distance(position, m_camera.gameObject.transform.position);
+
+        for (int i = blurStage; i > 0; i--)
+        {
+            amountOfPoints = initPointNum;
+            sampleRate = initSampleRate;
+            if (dist > i * blurDist)
+            {
+                amountOfPoints = initPointNum + 1 - (i) * initPointNum / blurStage;
+                sampleRate = i * initSampleRate;
+                break;
+            }
+        }
+
+        // delete expired EdgePoint
         while (sections.Count > 0)
         {
             float intersection = t - sections[sections.Count - 1].time;
@@ -179,15 +200,8 @@ public class TrailEffect : MonoBehaviour
                 seg.top.Add(sections[i].upDir);
             }
             lastTopPoint = seg.top[0];
-            try
-            {
-                lastTrackPoint = seg.track[0];
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("Generic Exception Handler: {0}", e.ToString());
-            }
-           
+            
+            lastTrackPoint = seg.track[0];
         }
 
         // set mesh vertices, uv, color and triangles

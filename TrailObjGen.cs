@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+
+// 自动生成子弹并绑定拖尾
 public class TrailObjGen : MonoBehaviour {
 
     static int trailNum;
